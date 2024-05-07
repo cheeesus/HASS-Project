@@ -1,0 +1,61 @@
+# THIS IS THE CONFIG FILE FOR RESTFUL 
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+rest:
+  - authentication: basic
+    resource: http://10.40.46.55:5000/data
+    scan_interval: 1
+    headers:
+      Authorization: !secret bearer_token
+    sensor:
+      - name: "DHT Temperature"
+        unique_id: dht_temperature
+        value_template: "{{ value_json.temp | int}}"
+        unit_of_measurement: "°C"
+      - name: "DHT Humidity"
+        unique_id: dht_humidity
+        value_template: "{{ value_json.humid | int}}"
+        unit_of_measurement: "%"
+      - name: "Grove Light Sensor"
+        unique_id: grove_light_sensor
+        value_template: "{{ value_json.lux | int}}"
+        unit_of_measurement: "lx"
+
+binary_sensor:
+  - platform: rest
+    name: "LED State"
+    unique_id: led_state
+    headers:
+      Authorization: !secret bearer_token
+    resource: http://10.40.46.55:5000/led_state
+    value_template: "{{ value_json.state }}"
+    device_class: light
+    scan_interval: 1
+
+shell_command:
+  update_bearer_token: python3 /config/get_update_token.py
+
+rest_command:
+  turn_on_led:
+    headers:
+      Authorization: !secret bearer_token
+    url: "http://10.40.46.55:5000/controllight"
+    method: "post"
+    payload: '{ "led": "on"}'
+    content_type: "application/json"
+  turn_off_led:
+    headers:
+      Authorization: !secret bearer_token
+    url: "http://10.40.46.55:5000/controllight"
+    method: "post"
+    payload: '{ "led": "off"}'
+    content_type: "application/json"
