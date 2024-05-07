@@ -1,0 +1,41 @@
+- id: "1714986984663"
+  alias: Turn on ligth when intensity is low
+  description: ""
+  trigger:
+    - platform: numeric_state
+      entity_id:
+        - sensor.grove_light_sensor
+      below: 299.8
+  condition: []
+  action:
+    - service: mqtt.publish
+      data:
+        topic: "homeassistant/led/set"
+        payload: "on"
+  mode: single
+- id: "1714987031054"
+  alias: Turn off light when intensity is high
+  description: ""
+  trigger:
+    - platform: numeric_state
+      entity_id:
+        - sensor.grove_light_sensor
+      above: 300.1
+  condition: []
+  action:
+    - service: mqtt.publish
+      data:
+        topic: "homeassistant/led/set"
+        payload: "off"
+  mode: single
+- id: "1714991303445"
+  alias: update bearer token
+  description: ""
+  trigger:
+    - platform: time
+      at: "13:28:55"
+  condition: []
+  action:
+    - service: shell_command.update_bearer_token
+      data: {}
+  mode: single

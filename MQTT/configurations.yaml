@@ -1,0 +1,66 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+rest:
+  - authentication: basic
+    resource: http://10.40.46.55:5000/data
+    headers:
+      Authorization: !secret bearer_token
+    scan_interval: 5
+    sensor:
+      - name: "DHT Temperature"
+        unique_id: dht_temperature
+        value_template: "{{ value_json.temp | int}}"
+        unit_of_measurement: "°C"
+      - name: "DHT Humidity"
+        unique_id: dht_humidity
+        value_template: "{{ value_json.humid | int}}"
+        unit_of_measurement: "%"
+      - name: "Grove Light Sensor"
+        unique_id: grove_light_sensor
+        value_template: "{{ value_json.lux | int}}"
+        unit_of_measurement: "lx"
+
+# MQTT Configuration
+mqtt:
+  # MQTT Sensors
+  sensor:
+    - name: "Temperature"
+      unique_id: temperature_mqtt
+      state_topic: "homeassistant/sensor"
+      device_class: temperature
+      value_template: "{{ value_json.temp }}"
+      unit_of_measurement: "°C"
+
+    - name: "Humidity"
+      unique_id: humidity_mqtt
+      state_topic: "homeassistant/sensor"
+      device_class: humidity
+      value_template: "{{ value_json.humid }}"
+      unit_of_measurement: "%"
+
+    - name: "Light"
+      unique_id: light_mqtt
+      state_topic: "homeassistant/sensor"
+      device_class: illuminance
+      value_template: "{{ value_json.lux }}"
+      unit_of_measurement: "lx"
+  # MQTT Binary Sensor
+  binary_sensor:
+    - name: "LED State"
+      state_topic: "homeassistant/led/state"
+      payload_on: "on"
+      payload_off: "off"
+      device_class: light
+
+# Shell Command (if still needed)
+shell_command:
+  update_bearer_token: python3 /config/get_update_token.py
