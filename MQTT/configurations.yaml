@@ -9,26 +9,6 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
-rest:
-  - authentication: basic
-    resource: http://10.40.46.55:5000/data
-    headers:
-      Authorization: !secret bearer_token
-    scan_interval: 5
-    sensor:
-      - name: "DHT Temperature"
-        unique_id: dht_temperature
-        value_template: "{{ value_json.temp | int}}"
-        unit_of_measurement: "°C"
-      - name: "DHT Humidity"
-        unique_id: dht_humidity
-        value_template: "{{ value_json.humid | int}}"
-        unit_of_measurement: "%"
-      - name: "Grove Light Sensor"
-        unique_id: grove_light_sensor
-        value_template: "{{ value_json.lux | int}}"
-        unit_of_measurement: "lx"
-
 # MQTT Configuration
 mqtt:
   # MQTT Sensors
