@@ -8,44 +8,44 @@ from grove.grove_light_sensor_v1_2 import GroveLightSensor
 from flask import Flask, jsonify, request
 from flask_mqtt import Mqtt
 import json
-
+sensor_data_error = None
 app = Flask(__name__)
 
-app.config['MQTT_BROKER_URL'] = '10.40.46.91'
+app.config['MQTT_BROKER_URL'] = '10.40.46.121'
 app.config['MQTT_BROKER_PORT'] = 1883
 app.config['MQTT_USERNAME'] = 'mqtt_user'
 app.config['MQTT_PASSWORD'] = 'mqttuser'
 
 mqtt = Mqtt(app)
     
-LedPIN = 16
-ButtonPIN = 17
+LedPIN = 5
+ButtonPIN = 6 
 LightSensorPIN = 2
 
-@mqtt.on_connect()
-def handle_connect(client, userdata, flags,rc):
-    if rc == 0:
-       print('Connected successfully')
-       mqtt.subscribe('homeassistant/led/set')
-       mqtt.subscribe('homeassistant/data')
-    else:
-       print('Bad connection. Code:', rc)
-       
 SECRET_KEY = 'vErYsEcuREeEeEeSeCreTTTkEyyyyyyYyYyY'
 users= {
     'bourezg': 'passwordofbourezg'
 }
 
+@mqtt.on_connect()
+def handle_connect(client, userdata, flags,rc):
+    if rc == 0:
+       print('Connected successfully')
+       mqtt.subscribe('homeassistant/data')
+       mqtt.subscribe('homeassistant/led/set')
+    else:
+       print('Bad connection. Code:', rc)   
+
 dhtDevice = adafruit_dht.DHT11(board.D18, use_pulseio=False)
 sensor = GroveLightSensor(LightSensorPIN)
-led = LED(LedPIN)
 
+
+     
 @app.route('/login', methods=['POST'])
 def login():
-    
     username = request.json.get('username')
     password = request.json.get('password')
-    
+    led = LED(LedPIN)
     if not username or not password:
         return jsonify({'message': 'Username and password are required'}), 400
         
@@ -55,18 +55,10 @@ def login():
     token = jwt.encode({'username': username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(days = 30)},SECRET_KEY)
     
     return jsonify({'token': token}), 200
-@app.route('/')
-def index():
     
-    now = datetime.datetime.now()
-    timeString = now.strftime("%d/%m/%Y %H:%M")
-    data = {
-        'title' : 'Test Server',
-        'time' : timeString,
-    }
-    return render_template('index.html', **data)
 @mqtt.on_message()
 def handle_message(client, userdata, message):
+    global sensor_data_error
     
     if message.topic == 'homeassistant/led/set':
         payload = message.payload.decode('utf-8')
@@ -78,18 +70,29 @@ def handle_message(client, userdata, message):
             led.off()   
         mqtt.publish('homeassistant/led/state', state)
     elif message.topic == 'homeassistant/data':
-        '''payload = message.payload.decode('utf-8')
-        print(payload)'''
         lux = sensor.light
         try:
             temp = dhtDevice.temperature
             humid = dhtDevice.humidity
         except RuntimeError as err:
             print(err.args[0])
-            return jsonify({'message': 'failed to retrieve sensor data'}), 500
+            sensor_data_error = 'Failed to retrieve sensor data'
+            return
+        sensor_data_error = None
         sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid}
         print(sensor_data)
-        mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))
+       
         
+'''@app.route('/')
+def index():
+    now = datetime.datetime.now()
+    timeString = now.strftime("%d/%m/%Y %H:%M")
+    data = {
+        'title' : 'Test Server',
+        'time' : timeString,
+    }
+    return render_template('index.html', **data)'''
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=5001, host='0.0.0.0')
+
