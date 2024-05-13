@@ -1,41 +1,58 @@
-- id: "1714986984663"
+- id: '1714986984663'
   alias: Turn on ligth when intensity is low
-  description: ""
+  description: ''
   trigger:
-    - platform: numeric_state
-      entity_id:
-        - sensor.grove_light_sensor
-      below: 299.8
+  - platform: numeric_state
+    entity_id:
+    - sensor.grove_light_sensor
+    - sensor.light
+    below: 299.8
   condition: []
   action:
-    - service: mqtt.publish
-      data:
-        topic: "homeassistant/led/set"
-        payload: "on"
+  - service: mqtt.publish
+    data:
+      topic: homeassistant/led/set
+      payload: 'on'
   mode: single
-- id: "1714987031054"
+- id: '1714987031054'
   alias: Turn off light when intensity is high
-  description: ""
+  description: ''
   trigger:
-    - platform: numeric_state
-      entity_id:
-        - sensor.grove_light_sensor
-      above: 300.1
+  - platform: numeric_state
+    entity_id:
+    - sensor.grove_light_sensor
+    - sensor.light
+    above: 300.1
   condition: []
   action:
-    - service: mqtt.publish
-      data:
-        topic: "homeassistant/led/set"
-        payload: "off"
+  - service: mqtt.publish
+    data:
+      topic: homeassistant/led/set
+      payload: 'off'
   mode: single
-- id: "1714991303445"
+- id: '1714991303445'
   alias: update bearer token
-  description: ""
+  description: ''
   trigger:
-    - platform: time
-      at: "13:28:55"
+  - platform: time
+    at: '13:28:55'
   condition: []
   action:
-    - service: shell_command.update_bearer_token
-      data: {}
+  - service: shell_command.update_bearer_token
+    data: {}
+  mode: single
+- id: '1715604741456'
+  alias: read sensors
+  description: ''
+  trigger:
+  - platform: time_pattern
+    seconds: /2
+  condition: []
+  action:
+  - service: mqtt.publish
+    metadata: {}
+    data:
+      qos: 0
+      retain: false
+      topic: homeassistant/data
   mode: single
