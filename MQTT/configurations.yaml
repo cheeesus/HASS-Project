@@ -48,6 +48,6 @@ mqtt:
       payload_on: "on"
       payload_off: "off"
       device_class: motion
-# Shell Command (if still needed)
+# Shell Command 
 shell_command:
   update_bearer_token: python3 /config/get_update_token.py
