@@ -4,7 +4,6 @@
   trigger:
   - platform: numeric_state
     entity_id:
-    - sensor.grove_light_sensor
     - sensor.light
     below: 299.8
   condition: []
@@ -20,7 +19,6 @@
   trigger:
   - platform: numeric_state
     entity_id:
-    - sensor.grove_light_sensor
     - sensor.light
     above: 300.1
   condition: []
@@ -55,4 +53,21 @@
       qos: 0
       retain: false
       topic: homeassistant/data
+  mode: single
+- id: '1715687708857'
+  alias: New automation
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id:
+    - sensor.light
+    below: 300
+  condition: []
+  action:
+  - service: mqtt.publish
+    data:
+      qos: 0
+      retain: false
+      topic: homeassistant/led/set
+      payload: 'on'
   mode: single
