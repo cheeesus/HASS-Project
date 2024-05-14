@@ -3,7 +3,7 @@ import datetime
 import adafruit_dht
 import board
 import jwt
-from gpiozero import LED, Button
+from gpiozero import LED, Button, MotionSensor
 from grove.grove_light_sensor_v1_2 import GroveLightSensor
 from flask import Flask, jsonify, request
 from flask_mqtt import Mqtt
@@ -18,10 +18,10 @@ app.config['MQTT_PASSWORD'] = 'mqttuser'
 
 mqtt = Mqtt(app)
     
-LedPIN = 5
-ButtonPIN = 6 
+LedPIN = 16
+ButtonPIN = 17 
 LightSensorPIN = 2
-
+MotionSensorPIN = 5
 SECRET_KEY = 'vErYsEcuREeEeEeSeCreTTTkEyyyyyyYyYyY'
 users= {
     'bourezg': 'passwordofbourezg'
@@ -38,14 +38,15 @@ def handle_connect(client, userdata, flags,rc):
 
 dhtDevice = adafruit_dht.DHT11(board.D18, use_pulseio=False)
 sensor = GroveLightSensor(LightSensorPIN)
-
+led = LED(LedPIN)
+PIR = MotionSensor(MotionSensorPIN)
 
      
 @app.route('/login', methods=['POST'])
 def login():
     username = request.json.get('username')
     password = request.json.get('password')
-    led = LED(LedPIN)
+    
     if not username or not password:
         return jsonify({'message': 'Username and password are required'}), 400
         
@@ -59,7 +60,6 @@ def login():
 @mqtt.on_message()
 def handle_message(client, userdata, message):
     global sensor_data_error
-    
     if message.topic == 'homeassistant/led/set':
         payload = message.payload.decode('utf-8')
         print(payload)
@@ -71,6 +71,11 @@ def handle_message(client, userdata, message):
         mqtt.publish('homeassistant/led/state', state)
     elif message.topic == 'homeassistant/data':
         lux = sensor.light
+        pir = PIR.value
+        if pir == 1:
+           motion = 'on'
+        else:
+           motion = 'off'
         try:
             temp = dhtDevice.temperature
             humid = dhtDevice.humidity
@@ -79,9 +84,9 @@ def handle_message(client, userdata, message):
             sensor_data_error = 'Failed to retrieve sensor data'
             return
         sensor_data_error = None
-        sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid}
+        sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid, 'motion' : motion}
         print(sensor_data)
-       
+        mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))
         
 '''@app.route('/')
 def index():
