@@ -33,6 +33,7 @@ mqtt:
       device_class: illuminance
       value_template: "{{ value_json.lux }}"
       unit_of_measurement: "lx"
+
   # MQTT Binary Sensor
   binary_sensor:
     - name: "LED State"
@@ -40,7 +41,13 @@ mqtt:
       payload_on: "on"
       payload_off: "off"
       device_class: light
-
+    - name: "Motion"
+      unique_id: motion_mqtt
+      state_topic: "homeassistant/sensor"
+      value_template: "{{ value_json.motion }}"
+      payload_on: "on"
+      payload_off: "off"
+      device_class: motion
 # Shell Command (if still needed)
 shell_command:
   update_bearer_token: python3 /config/get_update_token.py
