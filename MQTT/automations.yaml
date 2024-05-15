@@ -71,3 +71,24 @@
       topic: homeassistant/led/set
       payload: 'on'
   mode: single
+- id: '1715777893410'
+  alias: Update Parameters
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - input_number.param_a
+    - input_number.param_b
+    - input_number.param_c
+  condition: []
+  action:
+  - service: mqtt.publish
+    metadata: {}
+    data:
+      qos: 0
+      retain: false
+      topic: homeassistant/params
+      payload_template: "{\"a\": \"{{ states('input_number.param_a') }}\",\n  \"b\":
+        \"{{ states('input_number.param_b') }}\",\n  \"c\": \"{{ states('input_number.param_c')
+        }}\"}\n"
+  mode: single
