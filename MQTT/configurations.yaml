@@ -33,6 +33,12 @@ mqtt:
       device_class: illuminance
       value_template: "{{ value_json.lux }}"
       unit_of_measurement: "lx"
+    - name: "TEST E"
+      unique_id: enerytest
+      state_topic: "homeassistant/speedtest"
+      device_class: energy
+      value_template: "{{ value_json.val }}"
+      unit_of_measurement: "J"
 
   # MQTT Binary Sensor
   binary_sensor:
@@ -48,6 +54,7 @@ mqtt:
       payload_on: "on"
       payload_off: "off"
       device_class: motion
-# Shell Command 
+# Shell Command
 shell_command:
   update_bearer_token: python3 /config/get_update_token.py
+
