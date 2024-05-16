@@ -25,7 +25,6 @@ led = LED(LedPIN)
 
 @app.route('/')
 def index():
-
     now = datetime.datetime.now()
     timeString = now.strftime("%d/%m/%Y %H:%M")
     data = {
@@ -49,7 +48,7 @@ def login():
     
     return jsonify({'token': token}), 200
         
-@app.route('/read')
+'''@app.route('/read')
 def readDht():
     now = datetime.datetime.now()
     timeString = now.strftime("%d/%m/%Y %H:%M")
@@ -66,22 +65,24 @@ def readDht():
         'humid' : humidity
     }
     return render_template('index.html', **values)
-    
+'''    
 @app.route('/data')
 def data():
+    sent_time = time.time()
     token = request.headers.get('Authorization')
     if not token:
-        return jsonify({'message': 'Missing token'}), 401
-        
+        return jsonify({'message': 'Missing token'}), 400
     try: 
         decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
         username = decoded_token['username']
-        lux = sensor.light
+        lux = sensor.light 
         try:
             temp = dhtDevice.temperature
             humid = dhtDevice.humidity
         except RuntimeError as err:
             print(err.args[0])
+        rtt = time.time() - sent_time
+        print(rtt)
         return jsonify({ 'lux' : lux, 'temp' : temp, 'humid': humid}), 200
     except jwt.ExpiredSignatureError:
         return jsonify({'message': 'Token has expired'}), 401
@@ -93,7 +94,7 @@ def data():
 def ledHandler():
     token = request.headers.get('Authorization')
     if not token:
-        return jsonify({'message': 'Missing token'}), 401
+        return jsonify({'message': 'Missing token'}), 400
     try: 
         data = request.json
         if data['led'] == 'on' :
@@ -110,7 +111,7 @@ def ledHandler():
 def ledState():
     token = request.headers.get('Authorization')
     if not token:
-        return jsonify({'message': 'Missing token'}), 401
+        return jsonify({'message': 'Missing token'}), 400
     try: 
         val = led.value 
         if val == 0:
