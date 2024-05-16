@@ -10,11 +10,14 @@ from grove.grove_light_sensor_v1_2 import GroveLightSensor
 from flask import Flask, jsonify, request
 from flask_mqtt import Mqtt
 import json
-
-a = 1/1.01
+'''
+a = 1/10.1
 b = -0.6
-c = 0.01/1.01
-
+c = 0.1/10.1
+'''
+delta = 1
+tau = 20
+t = 100
 Xn = 0.0
 Xn_1 = 0.0
 Xn_2 = 0.0
@@ -31,8 +34,8 @@ app.config['MQTT_PASSWORD'] = 'mqttuser'
 
 mqtt = Mqtt(app)
     
-LedPIN = 16
-ButtonPIN = 17 
+LedPIN = 24
+ButtonPIN = 25 
 LightSensorPIN = 2
 MotionSensorPIN = 5
 SECRET_KEY = 'vErYsEcuREeEeEeSeCreTTTkEyyyyyyYyYyY'
@@ -52,21 +55,23 @@ def handle_connect(client, userdata, flags,rc):
 
 dhtDevice = adafruit_dht.DHT11(board.D18, use_pulseio=False)
 sensor = GroveLightSensor(LightSensorPIN)
-'''PIR = MotionSensor(MotionSensorPIN)
-led = LED(LedPIN)'''
-   
+PIR = MotionSensor(MotionSensorPIN)
+led = LED(24)
+
 @mqtt.on_message()
 def handle_message(client, userdata, message):
-    global sensor_data_error
+    global sensor_data_error, delta, tau,t
     if message.topic == 'homeassistant/params':
         payload = json.loads(message.payload.decode('utf-8'))
-        #print(payload['a'])
+        delta = float(payload['delta'])
+        tau = float(payload['tau'])
+        t = float(payload['t'])
     elif message.topic == 'homeassistant/ack':
         current_time = time.time()
         payload = json.loads(message.payload.decode('utf-8'))
         sent_time = payload['timestamp']
         round_trip_time = current_time - sent_time
-        print(f'round_trip_time :{round_trip_time}' )
+        #print(f'round_trip_time :{round_trip_time}' )
     elif message.topic == 'homeassistant/led/set':
         payload = message.payload.decode('utf-8')
         print(payload)
@@ -105,24 +110,24 @@ def handle_message(client, userdata, message):
    Xn_1 = Xn     '''  
 #first order model
 def ISR(signum, frame):
-   global Xn, Xn_1, En
+   global Xn, Xn_1, En, delta, tau, t
+   a = tau/(delta+tau)
+   c = delta/(delta+tau)
    #print(Xn)
    val = { 'val': Xn, 'timestamp': time.time() }
+   print(f'using {delta} and {tau} and {t}')
    mqtt.publish('homeassistant/energy', json.dumps(val)) 
    Xn = a * Xn_1 + c * En
    Xn_1 = Xn
    En = 1.0 if not En_toggle else 0.0
-   
+              
 signal.signal(signal.SIGALRM, ISR)
-signal.setitimer(signal.ITIMER_REAL, 0.01,0.01)
- 
- 
+signal.setitimer(signal.ITIMER_REAL, delta,delta)
+   
 @app.route('/login', methods=['POST'])
 def login():
     username = request.json.get('username')
     password = request.json.get('password')
-    
-    
     if not username or not password:
         return jsonify({'message': 'Username and password are required'}), 400
         
@@ -137,5 +142,5 @@ def login():
 if __name__ == '__main__':
    threading.Thread(target = lambda: app.run(debug=True, port=5001, host='0.0.0.0')).start()
    while True:
-      time.sleep(50)
+      time.sleep(t/2)
       En_toggle = not En_toggle
