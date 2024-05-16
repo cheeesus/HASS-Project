@@ -92,3 +92,17 @@
         \"{{ states('input_number.param_b') }}\",\n  \"c\": \"{{ states('input_number.param_c')
         }}\"}\n"
   mode: single
+- id: 'measure_mqtt_latency'
+  alias: Measure MQTT Latency
+  description: 'Measure the round-trip time of MQTT messages'
+  trigger:
+    - platform: mqtt
+      topic: homeassistant/energy
+  action:
+    - service: mqtt.publish
+      data_template:
+        topic: homeassistant/ack
+        payload: >
+          {{ trigger.payload }}
+        qos: 0
+        retain: false
