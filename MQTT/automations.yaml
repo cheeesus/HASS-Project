@@ -1,100 +1,102 @@
-- id: '1714986984663'
+- id: "1714986984663"
   alias: Turn on ligth when intensity is low
-  description: ''
+  description: ""
   trigger:
-  - platform: numeric_state
-    entity_id:
-    - sensor.light
-    below: 299.8
+    - platform: numeric_state
+      entity_id:
+        - sensor.light
+      below: 299.8
   condition: []
   action:
-  - service: mqtt.publish
-    data:
-      topic: homeassistant/led/set
-      payload: 'on'
+    - service: mqtt.publish
+      data:
+        topic: homeassistant/led/set
+        payload: "on"
   mode: single
-- id: '1714987031054'
+- id: "1714987031054"
   alias: Turn off light when intensity is high
-  description: ''
+  description: ""
   trigger:
-  - platform: numeric_state
-    entity_id:
-    - sensor.light
-    above: 300.1
+    - platform: numeric_state
+      entity_id:
+        - sensor.light
+      above: 300.1
   condition: []
   action:
-  - service: mqtt.publish
-    data:
-      topic: homeassistant/led/set
-      payload: 'off'
+    - service: mqtt.publish
+      data:
+        topic: homeassistant/led/set
+        payload: "off"
   mode: single
-- id: '1714991303445'
+- id: "1714991303445"
   alias: update bearer token
-  description: ''
+  description: ""
   trigger:
-  - platform: time
-    at: '13:28:55'
+    - platform: time
+      at: "13:28:55"
   condition: []
   action:
-  - service: shell_command.update_bearer_token
-    data: {}
+    - service: shell_command.update_bearer_token
+      data: {}
   mode: single
-- id: '1715604741456'
+- id: "1715604741456"
   alias: read sensors
-  description: ''
+  description: ""
   trigger:
-  - platform: time_pattern
-    seconds: /2
+    - platform: time_pattern
+      seconds: /2
   condition: []
   action:
-  - service: mqtt.publish
-    metadata: {}
-    data:
-      qos: 0
-      retain: false
-      topic: homeassistant/data
+    - service: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        topic: homeassistant/data
   mode: single
-- id: '1715687708857'
+- id: "1715687708857"
   alias: New automation
-  description: ''
+  description: ""
   trigger:
-  - platform: numeric_state
-    entity_id:
-    - sensor.light
-    below: 300
+    - platform: numeric_state
+      entity_id:
+        - sensor.light
+      below: 300
   condition: []
   action:
-  - service: mqtt.publish
-    data:
-      qos: 0
-      retain: false
-      topic: homeassistant/led/set
-      payload: 'on'
+    - service: mqtt.publish
+      data:
+        qos: 0
+        retain: false
+        topic: homeassistant/led/set
+        payload: "on"
   mode: single
-- id: '1715777893410'
+- id: "1715777893410"
   alias: Update Parameters
-  description: ''
+  description: ""
   trigger:
-  - platform: state
-    entity_id:
-    - input_number.param_a
-    - input_number.param_b
-    - input_number.param_c
+    - platform: state
+      entity_id:
+        - input_number.delta
+        - input_number.tau
+        - input_number.t
+
   condition: []
   action:
-  - service: mqtt.publish
-    metadata: {}
-    data:
-      qos: 0
-      retain: false
-      topic: homeassistant/params
-      payload_template: "{\"a\": \"{{ states('input_number.param_a') }}\",\n  \"b\":
-        \"{{ states('input_number.param_b') }}\",\n  \"c\": \"{{ states('input_number.param_c')
-        }}\"}\n"
+    - service: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        topic: homeassistant/params
+        payload_template:
+          "{\"delta\": \"{{ states('input_number.delta') }}\",\n  \"tau\":
+          \"{{ states('input_number.tau') }}\", \n  \"t\":
+          \"{{ states('input_number.t') }}\"}\n"
   mode: single
-- id: 'measure_mqtt_latency'
+- id: "measure_mqtt_latency"
   alias: Measure MQTT Latency
-  description: 'Measure the round-trip time of MQTT messages'
+  description: "Measure the round-trip time of MQTT messages"
   trigger:
     - platform: mqtt
       topic: homeassistant/energy
