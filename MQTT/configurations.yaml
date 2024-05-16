@@ -35,7 +35,7 @@ mqtt:
       unit_of_measurement: "lx"
     - name: "TEST E"
       unique_id: enerytest
-      state_topic: "homeassistant/speedtest"
+      state_topic: "homeassistant/energy"
       device_class: energy
       value_template: "{{ value_json.val }}"
       unit_of_measurement: "J"
@@ -57,4 +57,3 @@ mqtt:
 # Shell Command
 shell_command:
   update_bearer_token: python3 /config/get_update_token.py
-
