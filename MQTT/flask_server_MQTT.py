@@ -10,14 +10,17 @@ from grove.grove_light_sensor_v1_2 import GroveLightSensor
 from flask import Flask, jsonify, request
 from flask_mqtt import Mqtt
 import json
-'''
-a = 1/10.1
-b = -0.6
-c = 0.1/10.1
-'''
-delta = 1
+#default params for first order
 tau = 20
+
+#default params for second order
+z = 0.7
+wn = 0.285
+
+
 t = 100
+delta = 1
+
 Xn = 0.0
 Xn_1 = 0.0
 Xn_2 = 0.0
@@ -48,7 +51,8 @@ def handle_connect(client, userdata, flags,rc):
        print('Connected successfully')
        mqtt.subscribe('homeassistant/data')
        mqtt.subscribe('homeassistant/led/set')
-       mqtt.subscribe('homeassistant/params')
+       mqtt.subscribe('homeassistant/params/first')
+       mqtt.subscribe('homeassistant/params/second')
        mqtt.subscribe('homeassistant/ack')
     else:
        print('Bad connection. Code:', rc)   
@@ -60,11 +64,17 @@ led = LED(24)
 
 @mqtt.on_message()
 def handle_message(client, userdata, message):
-    global sensor_data_error, delta, tau,t
-    if message.topic == 'homeassistant/params':
+    global sensor_data_error, delta, tau,t, z, wn
+    if message.topic == 'homeassistant/params/first':
         payload = json.loads(message.payload.decode('utf-8'))
         delta = float(payload['delta'])
         tau = float(payload['tau'])
+        t = float(payload['t'])
+    elif message.topic == 'homeassistant/params/second':
+        payload = json.loads(message.payload.decode('utf-8'))
+        z = float(payload['z'])
+        wn = float(payload['wn'])
+        delta = float(payload['delta'])
         t = float(payload['t'])
     elif message.topic == 'homeassistant/ack':
         current_time = time.time()
@@ -100,28 +110,38 @@ def handle_message(client, userdata, message):
         print(sensor_data)
         mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))
 #second order model        
-'''def ISR(signum, frame):
-   global Xn, Xn_1, Xn_2, En
-   #print(Xn)
+def ISR_SECOND(signum, frame):
+   global Xn, Xn_1, Xn_2, En, delta, z, wn
+   print(Xn)
+   A = 2 * z * wn
+   B = wn * wn
+   denum = 1 + (delta*A) + (delta*delta*B)
+   a = (2 + (A * delta)) / denum
+   b = -1 / denum
+   c = ( B * delta*delta ) / denum
    val = { 'val': Xn }
-   mqtt.publish('homeassistant/speedtest', json.dumps(val)) 
+   print(f'using {delta} and {z} and {wn}')
+   mqtt.publish('homeassistant/second', json.dumps(val)) 
    Xn = a * Xn_1 + b * Xn_2 + c * En
    Xn_2 = Xn_1
-   Xn_1 = Xn     '''  
+   Xn_1 = Xn   
+   En = 1.0 if not En_toggle else 0.0    
 #first order model
-def ISR(signum, frame):
+def ISR_FIRST(signum, frame):
    global Xn, Xn_1, En, delta, tau, t
    a = tau/(delta+tau)
    c = delta/(delta+tau)
    #print(Xn)
    val = { 'val': Xn, 'timestamp': time.time() }
    print(f'using {delta} and {tau} and {t}')
-   mqtt.publish('homeassistant/energy', json.dumps(val)) 
+   mqtt.publish('homeassistant/first', json.dumps(val)) 
    Xn = a * Xn_1 + c * En
    Xn_1 = Xn
-   En = 1.0 if not En_toggle else 0.0
-              
-signal.signal(signal.SIGALRM, ISR)
+   En = 1.0 if not En_toggle else 0.0             
+signal.signal(signal.SIGALRM, ISR_FIRST)
+signal.setitimer(signal.ITIMER_REAL, delta,delta)
+
+signal.signal(signal.SIGALRM, ISR_SECOND)
 signal.setitimer(signal.ITIMER_REAL, delta,delta)
    
 @app.route('/login', methods=['POST'])
