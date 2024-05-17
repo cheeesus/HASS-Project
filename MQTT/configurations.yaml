@@ -33,12 +33,16 @@ mqtt:
       device_class: illuminance
       value_template: "{{ value_json.lux }}"
       unit_of_measurement: "lx"
-    - name: "TEST E"
-      unique_id: enerytest
-      state_topic: "homeassistant/energy"
+    - name: "First Order"
+      unique_id: first
+      state_topic: "homeassistant/first"
       device_class: energy
       value_template: "{{ value_json.val }}"
-      unit_of_measurement: "J"
+    - name: "Second Order"
+      unique_id: second
+      state_topic: "homeassistant/second"
+      device_class: energy
+      value_template: "{{ value_json.val }}"
 
   # MQTT Binary Sensor
   binary_sensor:
