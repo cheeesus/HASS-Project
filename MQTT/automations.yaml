@@ -72,7 +72,7 @@
         payload: "on"
   mode: single
 - id: "1715777893410"
-  alias: Update Parameters
+  alias: Update Parameters of First Order
   description: ""
   trigger:
     - platform: state
@@ -80,7 +80,6 @@
         - input_number.delta
         - input_number.tau
         - input_number.t
-
   condition: []
   action:
     - service: mqtt.publish
@@ -88,23 +87,47 @@
       data:
         qos: 0
         retain: false
-        topic: homeassistant/params
+        topic: homeassistant/params/first
         payload_template:
           "{\"delta\": \"{{ states('input_number.delta') }}\",\n  \"tau\":
-          \"{{ states('input_number.tau') }}\", \n  \"t\":
-          \"{{ states('input_number.t') }}\"}\n"
+          \"{{ states('input_number.tau') }}\", \n  \"t\": \"{{ states('input_number.t')
+          }}\"}\n"
   mode: single
-- id: "measure_mqtt_latency"
+- id: measure_mqtt_latency
   alias: Measure MQTT Latency
-  description: "Measure the round-trip time of MQTT messages"
+  description: Measure the round-trip time of MQTT messages
   trigger:
     - platform: mqtt
-      topic: homeassistant/energy
+      topic: homeassistant/first
   action:
     - service: mqtt.publish
       data_template:
         topic: homeassistant/ack
-        payload: >
-          {{ trigger.payload }}
+        payload: "{{ trigger.payload }}
+
+          "
         qos: 0
         retain: false
+- id: "1715938239190"
+  alias: Update Parameters of Second Order
+  description: ""
+  trigger:
+    - platform: state
+      entity_id:
+        - input_number.z
+        - input_number.t
+        - input_number.wn
+        - input_number.delta
+  condition: []
+  action:
+    - service: mqtt.publish
+      metadata: {}
+      data:
+        qos: 0
+        retain: false
+        topic: homeassistant/params/second
+        payload_template:
+          "{\"delta\": \"{{ states('input_number.delta') }}\",\n  \"z\":
+          \"{{ states('input_number.z') }}\", \n  \"wn\": \"{{ states('input_number.wn')
+          }}\",\n  \"t\": \"{{ states('input_number.t') }}\"}\n"
+  mode: single
