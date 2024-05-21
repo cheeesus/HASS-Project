@@ -43,6 +43,21 @@ mqtt:
       state_topic: "homeassistant/second"
       device_class: energy
       value_template: "{{ value_json.val }}"
+    - name: "Ti"
+      unique_id: temp
+      state_topic: "homeassistant/loop"
+      device_class: temperature
+      value_template: "{{ value_json.val }}"
+    - name: "Ti_ref"
+      unique_id: reference
+      state_topic: "homeassistant/loop"
+      device_class: temperature
+      value_template: "{{ value_json.ref }}"
+    - name: "Control Signal"
+      unique_id: control_sig
+      state_topic: "homeassistant/loop"
+      device_class: temperature
+      value_template: "{{ value_json.cn }}"
 
   # MQTT Binary Sensor
   binary_sensor:
