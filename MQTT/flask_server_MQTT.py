@@ -12,7 +12,7 @@ from flask_mqtt import Mqtt
 import json
 
 t = 100
-delta = 1
+
 
 #default params for first order
 tau = 20
@@ -21,6 +21,28 @@ tau = 20
 z = 0.7
 wn = 0.285
 
+
+
+# temperature exterieure : 
+Ti_ref = 20.0
+
+Tn = 0.0
+Tn_1 = 0.0
+Tn_2 = 0.0
+Cn = 0.0
+Cn_1 = 0.0
+Vn = 0.0
+Kp = 0.26
+Tau_i = 74.82
+
+'''
+Kp = 2.0
+Tau_i = 100'''
+delta = 1.0
+dTn = Ti_ref - Tn
+dTn_1 = 0.0
+error =  dTn
+error_1 = 0.0
 # Constants for the second-order system
 K = 20
 Tau1 = 8
@@ -31,27 +53,16 @@ denum = 1 + (delta * A) + (delta * delta * B)
 a = (2 + (A * delta)) / denum
 b = -1 / denum
 c = (K * B * delta * delta) / denum
-# temperature exterieure : 
-Ti_ref = 30
-
-Tn = 0.0
-dTn = Ti_ref - Tn
-dTn_1 = 0.0
-Tn_1 = 0.0
-Tn_2 = 0.0
-Cn = 0.0
-Cn_1 = 0.0
-Kp = 0.26
-Tau_i = 74.82
-
-
 
 Xn = 0.0
 Xn_1 = 0.0
 Xn_2 = 0.0
 En = 1.0
 En_toggle = False
-
+valve = 0.0
+temp = 10
+hysteresis = 0.5
+disturbance = 0.1 
 sensor_data_error = None
 app = Flask(__name__)
 
@@ -78,6 +89,7 @@ def handle_connect(client, userdata, flags,rc):
        mqtt.subscribe('homeassistant/led/set')
        mqtt.subscribe('homeassistant/params/first')
        mqtt.subscribe('homeassistant/params/second')
+       mqtt.subscribe('homeassistant/params/pi')
        mqtt.subscribe('homeassistant/ack')
     else:
        print('Bad connection. Code:', rc)   
@@ -89,7 +101,7 @@ led = LED(24)
 
 @mqtt.on_message()
 def handle_message(client, userdata, message):
-    global sensor_data_error, delta, tau,t, z, wn
+    global sensor_data_error, delta, tau,t, z, wn, Tau_i, Kp, Ti_ref
     if message.topic == 'homeassistant/params/first':
         payload = json.loads(message.payload.decode('utf-8'))
         delta = float(payload['delta'])
@@ -101,6 +113,13 @@ def handle_message(client, userdata, message):
         wn = float(payload['wn'])
         delta = float(payload['delta'])
         t = float(payload['t'])
+    elif message.topic == 'homeassistant/params/pi':
+        print('here')
+        payload = json.loads(message.payload.decode('utf-8'))
+        Tau_i = float(payload['taui'])
+        Kp = float(payload['kp'])
+        Ti_ref = float(payload['tiref']) 
+        print(f'changed to {Tau_i}, {Kp}, {Ti_ref}')  
     elif message.topic == 'homeassistant/ack':
         current_time = time.time()
         payload = json.loads(message.payload.decode('utf-8'))
@@ -116,46 +135,109 @@ def handle_message(client, userdata, message):
         elif payload == 'off':
             led.off()   
         mqtt.publish('homeassistant/led/state', state)
-    elif message.topic == 'homeassistant/data':
+'''    elif message.topic == 'homeassistant/data':
+        global temp
+        
         lux = sensor.light
         pir = PIR.value
         if pir == 1:
            motion = 'on'
         else:
            motion = 'off'
+        
         try:
             temp = dhtDevice.temperature
-            humid = dhtDevice.humidity
+            #humid = dhtDevice.humidity
         except RuntimeError as err:
             print(err.args[0])
             sensor_data_error = 'Failed to retrieve sensor data'
             return
         sensor_data_error = None
-        sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid, 'motion' : motion}
-        print(sensor_data)
-        mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))
+        #sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid, 'motion' : motion}
+        print(temp)
+        #mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))'''
 
-#Loop 
-def ISR_LOOP(signum, frame):
-   global Ti_ref, Tn, dTn, dTn_1, Tn_1, Tn_2, Cn, Cn_1, Kp, Tau_i, En, delta, a, b, c
+#ON OFF Logic 
+def ISR_ON_OFF(signum, frame):
+   global ref, Tn, Tn_1, Tn_2, a, b, c, temp, disturbance, valve
+   ref = 10.0
+   if (ref - Tn) > hysteresis :
+      valve = 1
+   elif (ref - Tn) < (-hysteresis) :
+      valve = 0
+      
+   #effect = disturbance * ( temp - Tn)
    
-   # Calculate the control signal (PI controller)
-   dTn = Ti_ref - Tn  # Error calculation
-   Cn = Cn_1 + Kp * (dTn - dTn_1) + (Kp * delta / Tau_i) * dTn
-   
-   En = 1 if Cn > 0 else 0
    # Calculate the output of the system
-   Tn = a * Tn_1 + b * Tn_2 + c * Cn
-   
+   #Tn = (a * Tn_1) + (b * Tn_2) + (c * valve) + effect
+   Tn = (a * Tn_1) + (b * Tn_2) + (c * valve)
    # Update state variables
    Tn_2 = Tn_1
    Tn_1 = Tn
+   
+   val = { 'val': Tn, 'ref': ref, 'valve': valve } 
+   mqtt.publish('homeassistant/onoff', json.dumps(val))
+   print(val)
+
+#PI  
+def ISR_PI(signum, frame):
+   global Ti_ref, Tn, dTn, dTn_1, Tn_1, Tn_2, Cn, Cn_1, Kp, Tau_i, En, delta, a, b, c, Vn
+   
+   dTn = Ti_ref - Tn
+   # Calculate the control signal (PI controller)
+   Cn = Cn_1 + Kp * (dTn - dTn_1) + (Kp * delta / Tau_i) * dTn
+   
+   if Cn < 0:
+      Vn = 0
+   elif Cn > 0 and Cn < 1:
+      Vn = Cn
+   else:
+      Vn = 1
+   # Calculate the output of the system
+   Tn = a * Tn_1 + b * Tn_2 + c * Vn
+   
+   # Update state variables
    dTn_1 = dTn
+   Tn_2 = Tn_1
+   Tn_1 = Tn
    Cn_1 = Cn
-   val = { 'val': Tn, 'ref': Ti_ref, 'cn': Cn } 
-   mqtt.publish('homeassistant/loop', json.dumps(val))
+   val = { 'val': Tn, 'ref': Ti_ref, 'cn': Cn, 'vn': Vn } 
+   mqtt.publish('homeassistant/pi', json.dumps(val))
    print(val)
    #print(f'using Kp={Kp} and Tau_i={Tau_i}: Tn={Tn}, En={En}, Cn={Cn}')
+
+def ISR_PI_ANTIWINDUP(signum, frame):
+   global Ti_ref, Tn, error, error_1, Tn_1, Tn_2, Cn, Cn_1, Kp, Tau_i, En, delta, a, b, c, Vn
+   #print(f'tref {Ti_ref}, Tn {Tn},Tn_1 {Tn_1}, dTn {dTn}, dTn_1 {dTn}')
+   
+   # Calculate the control signal (PI controller)
+   error = Ti_ref - Tn
+   # anti-windup : stopping the integral when saturation is reached
+   if Cn >= 1 or Cn < 0: 
+      integral = Cn_1
+   else :
+      integral = Cn_1 + (Kp * delta / Tau_i) * error
+   Cn = integral + Kp * (error - error_1)
+   # saturator
+   if Cn < 0:
+      Vn = 0
+   elif Cn > 1:
+      Vn = 1
+   else:
+      Vn = Cn
+   
+   # Calculate the output of the system
+   Tn = a * Tn_1 + b * Tn_2 + c * Vn
+   
+   # Update state variables
+   error_1 = error
+   Tn_2 = Tn_1
+   Tn_1 = Tn
+   Cn_1 = Cn
+   
+   val = { 'val': Tn, 'ref': Ti_ref, 'cn': Cn, 'vn': Vn } 
+   mqtt.publish('homeassistant/pi', json.dumps(val))
+   print(val)
    
 #second order model        
 def ISR_SECOND(signum, frame):
@@ -185,16 +267,20 @@ def ISR_FIRST(signum, frame):
    mqtt.publish('homeassistant/first', json.dumps(val)) 
    Xn = a * Xn_1 + c * En
    Xn_1 = Xn
-   En = 1.0 if not En_toggle else 0.0      
-   
-signal.signal(signal.SIGALRM, ISR_LOOP)
+   En = 1.0 if not En_toggle else 0.0 
+     
+signal.signal(signal.SIGALRM, ISR_ON_OFF)
+#signal.signal(signal.SIGALRM, ISR_PI_ANTIWINDUP)
+signal.setitimer(signal.ITIMER_REAL, delta,delta)      
+'''   
+signal.signal(signal.SIGALRM, ISR_PI)
 signal.setitimer(signal.ITIMER_REAL, delta,delta)
 
 signal.signal(signal.SIGALRM, ISR_FIRST)
 signal.setitimer(signal.ITIMER_REAL, delta,delta)
 
 signal.signal(signal.SIGALRM, ISR_SECOND)
-signal.setitimer(signal.ITIMER_REAL, delta,delta)
+signal.setitimer(signal.ITIMER_REAL, delta,delta)'''
  
 @app.route('/login', methods=['POST'])
 def login():
