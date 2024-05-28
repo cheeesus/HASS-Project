@@ -19,20 +19,19 @@ mqtt:
       device_class: temperature
       value_template: "{{ value_json.temp }}"
       unit_of_measurement: "°C"
-
     - name: "Humidity"
       unique_id: humidity_mqtt
       state_topic: "homeassistant/sensor"
       device_class: humidity
       value_template: "{{ value_json.humid }}"
       unit_of_measurement: "%"
-
     - name: "Light"
       unique_id: light_mqtt
       state_topic: "homeassistant/sensor"
       device_class: illuminance
       value_template: "{{ value_json.lux }}"
       unit_of_measurement: "lx"
+
     - name: "First Order"
       unique_id: first
       state_topic: "homeassistant/first"
@@ -43,26 +42,28 @@ mqtt:
       state_topic: "homeassistant/second"
       device_class: energy
       value_template: "{{ value_json.val }}"
+
     - name: "Ti"
       unique_id: temp
-      state_topic: "homeassistant/pi"
+      state_topic: "homeassistant/pi/antiwindup"
       device_class: temperature
       value_template: "{{ value_json.val }}"
     - name: "Ti_ref"
       unique_id: reference
-      state_topic: "homeassistant/pi"
+      state_topic: "homeassistant/pi/antiwindup"
       device_class: temperature
       value_template: "{{ value_json.ref }}"
     - name: "Control Signal"
       unique_id: control_sig
-      state_topic: "homeassistant/pi"
+      state_topic: "homeassistant/pi/antiwindup"
       device_class: energy
       value_template: "{{ value_json.cn }}"
     - name: "Heat Valve"
       unique_id: heat_valve
-      state_topic: "homeassistant/pi"
+      state_topic: "homeassistant/pi/antiwindup"
       device_class: energy
       value_template: "{{ value_json.vn }}"
+
     - name: "ON/OFF Logic"
       unique_id: on_off
       state_topic: "homeassistant/onoff"
@@ -71,6 +72,17 @@ mqtt:
     - name: "Ti_ref ON/OFF"
       unique_id: on_off_ti_ref
       state_topic: "homeassistant/onoff"
+      device_class: temperature
+      value_template: "{{ value_json.ref }}"
+
+    - name: "Ti_pi"
+      unique_id: temp_pi
+      state_topic: "homeassistant/pi/windup"
+      device_class: temperature
+      value_template: "{{ value_json.val }}"
+    - name: "Ti_ref_pi"
+      unique_id: reference_pi
+      state_topic: "homeassistant/pi/windup"
       device_class: temperature
       value_template: "{{ value_json.ref }}"
 
@@ -88,7 +100,3 @@ mqtt:
       payload_on: "on"
       payload_off: "off"
       device_class: motion
-# Shell Command
-shell_command:
-  update_bearer_token: python3 /config/get_update_token.py
-
