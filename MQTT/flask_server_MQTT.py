@@ -11,14 +11,13 @@ import signal
 
 t = 100
 # temperature exterieure : 
-Ti_ref = 12.0
+Ti_ref = 18.0
 Tn =  0.0
 Tn_1 = 0.0
 Tn_2 = 0.0
 Cn = 0.0
 Cn_1 = 0.0
 Vn = 0.0
-
 Kp = 0.26
 Tau_i = 74.82
 
@@ -79,11 +78,24 @@ led = LED(24)
 @mqtt.on_message()
 def handle_message(client, userdata, message):
     global sensor_data_error, delta, tau,t, z, wn, Tau_i, Kp, Ti_ref, extemp
-    if message.topic == 'homeassistant/params/first':
-        payload = json.loads(message.payload.decode('utf-8'))
-        delta = float(payload['delta'])
-        tau = float(payload['tau'])
-        t = float(payload['t'])
+    if message.topic == 'homeassistant/data':
+        try:
+            pir = PIR.value
+            if pir == 1:
+               motion = 'on'
+            else:
+               motion = 'off'
+            lux = sensor.light
+            temp = dhtDevice.temperature
+            humid = dhtDevice.humidity
+        except RuntimeError as err:
+            print(err.args[0])
+            sensor_data_error = 'Failed to retrieve sensor data'
+            return
+        sensor_data_error = None
+        sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid, 'motion' : motion}
+        print(sensor_data)
+        mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))
     elif message.topic == 'homeassistant/params/second':
         payload = json.loads(message.payload.decode('utf-8'))
         z = float(payload['z'])
@@ -124,7 +136,6 @@ def handle_message(client, userdata, message):
             else:
                motion = 'off'
             lux = sensor.light
-            
             temp = dhtDevice.temperature
             humid = dhtDevice.humidity
         except RuntimeError as err:
@@ -175,7 +186,6 @@ def ISR_PI_ANTIWINDUP(signum, frame):
       integral = Cn_1 + a_integral * dTn
    # Calculate the control signal (PI controller)
    Cn = integral + Kp * (dTn - dTn_1)
-   
    # actuator saturation
    if Cn < 0:
       Vn = 0
@@ -183,10 +193,8 @@ def ISR_PI_ANTIWINDUP(signum, frame):
       Vn = 1
    else:
       Vn = Cn
-      
    # Calculate the output of the system
    Tn = a * Tn_1 + b * Tn_2 + c * Vn
-   
    # Update state variables
    dTn_1 = dTn
    Tn_2 = Tn_1
@@ -221,8 +229,43 @@ def ISR_PI(signum, frame):
    val = { 'val': Tn, 'ref': Ti_ref, 'cn': Cn, 'vn': Vn } 
    mqtt.publish('homeassistant/pi/windup', json.dumps(val))
    #print(val)
-    
-     
+'''   
+#default params for first order
+tau = 20
+#default params for second order
+z = 0.7
+wn = 0.285
+#second order model        
+def ISR_SECOND(signum, frame):
+   global Xn, Xn_1, Xn_2, En, delta
+   #print(Xn)
+   A = 2 * z * wn
+   B = wn * wn
+   denum = 1 + (delta*A) + (delta*delta*B)
+   a = (2 + (A * delta)) / denum
+   b = -1 / denum
+   c = ( B * delta*delta ) / denum
+   val = { 'val': Xn }
+   #print(f'using {delta} and {z} and {wn}')
+   mqtt.publish('homeassistant/second', json.dumps(val)) 
+   Xn = a * Xn_1 + b * Xn_2 + c * En
+   Xn_2 = Xn_1
+   Xn_1 = Xn   
+   En = 1.0 if not En_toggle else 0.0    
+#first order model
+def ISR_FIRST(signum, frame):
+   global Xn, Xn_1, En, delta, tau, t
+   a = tau/(delta+tau)
+   c = delta/(delta+tau)
+   #print(Xn)
+   val = { 'val': Xn, 'timestamp': time.time() }
+   #print(f'using {delta} and {tau} and {t}')
+   mqtt.publish('homeassistant/first', json.dumps(val)) 
+   Xn = a * Xn_1 + c * En
+   Xn_1 = Xn
+   En = 1.0 if not En_toggle else 0.0 
+'''     
+# uncomment to use the specific ISR
 signal.signal(signal.SIGALRM, ISR_ON_OFF)
 #signal.signal(signal.SIGALRM, ISR_PI_ANTIWINDUP)
 #signal.signal(signal.SIGALRM, ISR_PI)    
@@ -231,25 +274,5 @@ signal.setitimer(signal.ITIMER_REAL, delta,delta)
 if __name__ == '__main__':
    threading.Thread(target = lambda: app.run(debug=True, port=5001, host='0.0.0.0')).start()
    while True:
-      time.sleep(t/2)
-
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.json.get('username')
-    password = request.json.get('password')
-    if not username or not password:
-        return jsonify({'message': 'Username and password are required'}), 400
-        
-    if username not in users or users[username] != password:
-        return jsonify({'message': 'invalid uservame or password'}), 401
-        
-    token = jwt.encode({'username': username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(days = 30)},SECRET_KEY)
-    
-    return jsonify({'token': token}), 200
-
-
-if __name__ == '__main__':
-   threading.Thread(target = lambda: app.run(debug=True, port=5001, host='0.0.0.0')).start()
-   while True:
-      time.sleep(t/2)
-      En_toggle = not En_toggle
+      time.sleep(t)
+      
