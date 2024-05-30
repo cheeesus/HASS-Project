@@ -1,4 +1,4 @@
-# THIS IS THE CONFIG FILE FOR RESTFUL 
+# THIS IS THE CONFIG FILE FOR RESTFUL
 # Loads default set of integrations. Do not remove.
 default_config:
 
@@ -36,9 +36,18 @@ binary_sensor:
     unique_id: led_state
     headers:
       Authorization: !secret bearer_token
-    resource: http://10.40.46.55:5000/led_state
-    value_template: "{{ value_json.state }}"
+    resource: http://10.40.46.55:5000/states
+    value_template: "{{ value_json.led }}"
     device_class: light
+    scan_interval: 1
+  - platform: rest
+    name: "Motion"
+    unique_id: motion
+    headers:
+      Authorization: !secret bearer_token
+    resource: http://10.40.46.55:5000/states
+    value_template: "{{ value_json.motion }}"
+    device_class: motion
     scan_interval: 1
 
 shell_command:
