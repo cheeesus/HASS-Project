@@ -3,11 +3,8 @@ import yaml
 
 def obtain_bearer_token(username, password):
     auth_endpoint = 'http://10.40.46.55:5000/login'
-    
     auth_data = {'username': username, 'password': password}
-    print('here2')
     response = requests.post(auth_endpoint, json=auth_data)
-    print('here3')
     if response.status_code == 200:
         token = response.json().get('token')
         return token
@@ -27,9 +24,8 @@ def update_secrets_yaml(token):
         yaml.safe_dump(secrets, file)
 
 def main():
-    username = 'bourezg'
-    password = 'passwordofbourezg'
-    print('here')
+    username = 'USERNAME'
+    password = 'PASSWORD'
     token = obtain_bearer_token(username, password)
     
     if token:
