@@ -12,7 +12,7 @@ LightSensorPIN = 2
 
 SECRET_KEY = 'vErYsEcuREeEeEeSeCreTTTkEyyyyyyYyYyY'
 users= {
-    'bourezg': 'passwordofbourezg'
+    'USERNAME': 'PASSWORD'
 }
 
 app = Flask(__name__)
