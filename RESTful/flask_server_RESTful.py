@@ -39,7 +39,6 @@ def login():
 
 @app.route('/data')
 def data():
-    sent_time = time.time()
     token = request.headers.get('Authorization')
     if not token:
         return jsonify({'message': 'Missing token'}), 400
@@ -52,8 +51,6 @@ def data():
             humid = dhtDevice.humidity
         except RuntimeError as err:
             print(err.args[0])
-        rtt = time.time() - sent_time
-        #print(rtt)
         sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid}
         return jsonify(sensor_data), 200
     except jwt.ExpiredSignatureError:
