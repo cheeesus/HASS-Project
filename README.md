@@ -30,20 +30,31 @@ Edit the `automations.yaml` file in both the MQTT and RESTful directories to def
 ### Run the servers:
 * Run the `flask_server_MQTT.py` file to start the MQTT server.
 * Run the `flask_server_RESTful.py` file to start the RESTful API server.
+* 
 Example
-Here is an example of an automation that turns on a light when a motion sensor is triggered:
-
+Here is an example of an automation that turns on a light when motion is detected and light intensity is low:
 ```yaml
-- name: "Turn on light when motion detected"
+- id: "1714987031054"
+  alias: Turn off light when intensity is high
+  description: ""
   trigger:
-    - platform: mqtt
-      topic: "motion_sensor/state"
-      payload: "on"
+    - platform: state
+      entity_id:
+        - binary_sensor.motion
+      to: "on"
+    - platform: numeric_state
+      entity_id:
+        - sensor.light
+      below: 299
+  condition: []
   action:
-    - service: light.turn_on
-      entity_id: light.living_room_light
+    - service: mqtt.publish
+      data:
+        topic: homeassistant/led/set
+        payload: "on"
+  mode: single
 ```
-This automation specifies that when the MQTT topic "motion_sensor/state" receives a message with the payload "on", the light entity "light.living_room_light" will be turned on.
+This automation specifies that when the Light intensity is low and there is motion detected in the area. the LED light is turned on by sending a payload 'on' to the `homeassistant/led/set` topic
 
 ### Notes
 * The code is written for educational purposes and may not be suitable for production environments.
