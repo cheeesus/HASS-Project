@@ -30,7 +30,7 @@ Edit the `automations.yaml` file in both the MQTT and RESTful directories to def
 ### Run the servers:
 * Run the `flask_server_MQTT.py` file to start the MQTT server.
 * Run the `flask_server_RESTful.py` file to start the RESTful API server.
-* 
+* Please make sure you run your python files in a virtual environement.
 Example
 Here is an example of an automation that turns on a light when motion is detected and light intensity is low:
 ```yaml
