@@ -1,5 +1,5 @@
 # Home Automation System
-This repository contains the code for a home automation system that uses both MQTT and RESTful APIs.
+This repository contains the code for an IoT system that uses both MQTT and RESTful APIs in a Home Assistant Server. In addition to that, an emulation of a temperature regulation system using two correctors (Proportional Integral with anti- WindUP effect and an ON/OFF corrector with hysterisis). the temperature regulation system is available only in the MQTT version.
 
 ##Structure
 The repository is organized into two main directories:
@@ -57,6 +57,5 @@ Here is an example of an automation that turns on a light when motion is detecte
 This automation specifies that when the Light intensity is low and there is motion detected in the area. the LED light is turned on by sending a payload 'on' to the `homeassistant/led/set` topic
 
 ### Notes
-* The code is written for educational purposes and may not be suitable for production environments.
+* The code is written for educational purposes only.
 * Please refer to the documentation of the specific libraries used in this repository for more information.
-Please feel free to contribute to this project by submitting pull requests or opening issues.
