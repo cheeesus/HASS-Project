@@ -128,24 +128,6 @@ def handle_message(client, userdata, message):
         elif payload == 'off':
             led.off()   
         mqtt.publish('homeassistant/led/state', state)
-    elif message.topic == 'homeassistant/data':
-        try:
-            pir = PIR.value
-            if pir == 1:
-               motion = 'on'
-            else:
-               motion = 'off'
-            lux = sensor.light
-            temp = dhtDevice.temperature
-            humid = dhtDevice.humidity
-        except RuntimeError as err:
-            print(err.args[0])
-            sensor_data_error = 'Failed to retrieve sensor data'
-            return
-        sensor_data_error = None
-        sensor_data = { 'lux' : lux, 'temp' : temp, 'humid': humid, 'motion' : motion}
-        print(sensor_data)
-        mqtt.publish('homeassistant/sensor', json.dumps(sensor_data))
 
 #ON OFF Logic 
 def ISR_ON_OFF(signum, frame):
