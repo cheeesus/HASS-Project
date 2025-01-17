@@ -1,7 +1,7 @@
 # Home Automation System
 This repository contains the code for an IoT system that uses both MQTT and RESTful APIs in a Home Assistant Server. In addition to that, an emulation of a temperature regulation system using two correctors (Proportional Integral with anti-WindUp effect and an ON/OFF corrector with hysterisis). the temperature regulation system is available only in the MQTT version.
 
-##Structure
+## Structure
 The repository is organized into two main directories:
 
 * ### MQTT: Contains the code for the MQTT-based communication.
